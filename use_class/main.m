@@ -15,6 +15,7 @@ signal.p = 1; % count periods
 signal.f = 2; % frequency
 signal.N = 256; % count dot
 signal.snr = 1/2; % signal to noise ratio; optional value
+signal.na = 15% interpoletion
 %% STEP 2
 % Create first configuration 
 % Need use if you have reset data

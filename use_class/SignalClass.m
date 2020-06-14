@@ -5,6 +5,7 @@ classdef SignalClass  < handle
         f {mustBeNumeric};
         ly {mustBeNumeric};
         lx {mustBeNumeric};
+        na {mustBeNumeric};
         snr=0;
         fd=[];
         x=[];
@@ -57,65 +58,115 @@ classdef SignalClass  < handle
             end
        end
        
+       function obj = write_message(obj, i)
+          Info=['Довжина сигналу складає ' num2str(obj.ly) ' відліки'];
+          disp('-----------------------------------------------------')
+          disp(Info)
+          disp('-----------------------------------------------------')
+          Info=['Найближча степінь двійки, i=' num2str(i)];
+          disp(Info)
+          disp('-----------------------------------------------------')
+          Ost=obj.ly-2^i;
+          Info=['Остача від ділення на 2^i=' num2str(Ost)];
+          disp(Info)
+          disp('-----------------------------------------------------')
+       end
+       
+       function obj = interpoletion(obj)
+            while (rem(obj.lx,obj.na)~=0)
+                obj.na=obj.na+1;%Визначення дільника, більшого за 15
+                %-----------------------------------------
+                %Зменшення кількості початкових відліків до ділення на 32
+                %-----------------------------------------
+                if obj.na>40
+                    ji=32*floor(obj.lx/32);
+                    jj=floor(obj.lx/(obj.lx-ji))-1;
+                    while(obj.lx~=ji)
+                        obj.x(jj)=[];
+                        obj.change_y(jj)=[];
+                        obj.lx=length(obj.x);
+                        obj.ly=length(obj.change_y);
+                    end
+                    obj.na=30;
+                end
+            end
+       end
+       
+       function [L] = aproximate(obj, polinom, L, xi)
+           lL=length(L);
+           lxi=length(xi);
+           if lL<=32
+            Na=4;%Кількість проміжків апроксимації
+           else
+            Na=8;
+           end
+           Pp=polinom;%Максимальний порядок полінома
+           if lL~=lxi
+            disp('Довжина сигналу не рівна довжині вектора часу!')
+           else
+            obj.na=lxi/Na;%Кількість проміжків апроксимації
+            for j=1:Na
+                R_2_max=0;
+                por=0;
+                nl=(j-1)*obj.na+1;
+                kl=obj.na*j;
+                for por_t=1:Pp
+                    p=polyfit(xi(nl:kl),L(nl:kl),por_t);
+                    obj.a(nl:kl)=polyval(p,xi(nl:kl));
+                    Do=sum((L(nl:kl)-obj.a(nl:kl)).^2);
+                    yn1=length(L(nl:kl));
+                    ysr=sum(L(nl:kl))/yn1;
+                    Ds=sum((L(nl:kl)-ysr).^2);
+                    if Ds==0
+                        disp('Ділення на нуль! Змініть вхідні дані!')
+                    else
+                        if Do<1e-7
+                            Do=0;
+                        end
+                        R_2=1-Do/Ds;%Визначення коефіцієнту детермінації
+                        if R_2_max<R_2
+                            R_2_max=R_2;
+                            por=por_t;
+                        end
+                    end
+                end
+                p=polyfit(xi(nl:kl),L(nl:kl),por);
+                obj.a(nl:kl)=polyval(p,xi(nl:kl));
+             end
+             %-----------------------------------------
+             %Згладжування
+             %-----------------------------------------
+             lot=lxi/Na;
+             olot=round(lot/5);
+             for j=1:(Na-1)
+                nl=j*lot-olot+1;
+                kl=j*lot+olot;
+                p=polyfit(xi(nl:kl),obj.a(nl:kl),5);
+                obj.a(nl:kl)=polyval(p,xi(nl:kl));
+             end
+          end
+       end
+       
        function obj =  MNKplusLagr(obj)
            if isempty(obj.Y_noise)
                obj.change_y = obj.y
            end
-           i=0;
-            div=obj.ly/(2^i);
-            while div>1
-                div=obj.ly/(2^(i+1));
-                if div>=1
-                    i=i+1;
-                end
-            end
+           i = floor(log2(obj.ly)); % power of 2
             %-----------------------------------------
             %Визначення остачі від ділення на 2^i
             %-----------------------------------------
             if obj.ly-2^i~=0%Умова наявності остачі
-                Info=['Довжина сигналу складає ' num2str(obj.ly) ' відліки'];
-                disp('-----------------------------------------------------')
-                disp(Info)
-                disp('-----------------------------------------------------')
-                Info=['Найближча степінь двійки, i=' num2str(i)];
-                disp(Info)
-                disp('-----------------------------------------------------')
-                Ost=obj.ly-2^i;%Остача від ділення на 2^i
-                Info=['Остача від ділення на 2^i=' num2str(Ost)];
-                disp(Info)
-                disp('-----------------------------------------------------')
-                %-----------------------------------------
-                %Інтерполяція
-                %-----------------------------------------
-                na=15;%Початкова кількість точок у відрізку
-                while (rem(obj.lx,na)~=0)
-                    na=na+1;%Визначення дільника, більшого за 15
-                    %-----------------------------------------
-                    %Зменшення кількості початкових відліків до ділення на 32
-                    %-----------------------------------------
-                    if na>40
-                        ji=32*floor(obj.lx/32);
-                        jj=floor(obj.lx/(obj.lx-ji))-1;
-                        j=jj;
-                        while(obj.lx~=ji)
-                            obj.x(j)=[];
-                            obj.change_y(j)=[];
-                            j=j+jj;
-                            obj.lx=length(obj.x);
-                            obj.ly=length(obj.change_y);
-                        end
-                        na=30;
-                    end
-                    %-----------------------------------------
-                end
+                obj.write_message(i)
+                obj.interpoletion(); % Interpoletion
+                
                 inTo=2^(i+1)-obj.ly;%Визначення кількості відліків, необхідних для інтерполяції
-                Na=fix(obj.ly/na);%Визначення кількості відрізків інтерполяції
+                Na=fix(obj.ly/obj.na);%Визначення кількості відрізків інтерполяції
                 vpls=fix(inTo/Na);%Кількість додаткових точок
                 add=rem(inTo,Na);%Неповна кількість відліків, для додавання у відрізки
-                Lint=vpls+na+1;
+                Lint=vpls+obj.na+1;
                 for j=1:Na
-                    nl=(j-1)*na+1;
-                    kl=na*j;
+                    nl=(j-1)*obj.na+1;
+                    kl=obj.na*j;
                     nli=(j-1)*Lint+1;
                     kli=Lint*j;
                     [obj.xi(nli:kli),L(nli:kli)]=Lagr_rep(obj.x(nl:kl),obj.change_y(nl:kl),Lint);
@@ -160,127 +211,14 @@ classdef SignalClass  < handle
                 %-----------------------------------------
                 %Апроксимація
                 %-----------------------------------------
-                lL=length(L);
-                lxi=length(obj.xi);
-                if lL<=32
-                    Na=4;%Кількість проміжків апроксимації
-                else
-                    Na=8;
-                end
-                Pp=5;%Максимальний порядок полінома
-                if lL~=lxi
-                    disp('Довжина сигналу не рівна довжині вектора часу!')
-                else
-                    na=lxi/Na;%Кількість проміжків апроксимації
-                    for j=1:Na
-                        R_2_max=0;
-                        por=0;
-                        nl=(j-1)*na+1;
-                        kl=na*j;
-                        for por_t=1:Pp
-                            p=polyfit(obj.xi(nl:kl),L(nl:kl),por_t);
-                            obj.a(nl:kl)=polyval(p,obj.xi(nl:kl));
-                            Do=sum((L(nl:kl)-obj.a(nl:kl)).^2);
-                            yn1=length(L(nl:kl));
-                            ysr=sum(L(nl:kl))/yn1;
-                            Ds=sum((L(nl:kl)-ysr).^2);
-                            if Ds==0
-                                disp('Ділення на нуль! Змініть вхідні дані!')
-                            else
-                                if Do<1e-7
-                                    Do=0;
-                                end
-                                R_2=1-Do/Ds;%Визначення коефіцієнту детермінації
-                                if R_2_max<R_2
-                                    R_2_max=R_2;
-                                    por=por_t;
-                                end
-                            end
-                        end
-                        p=polyfit(obj.xi(nl:kl),L(nl:kl),por);
-                        obj.a(nl:kl)=polyval(p,obj.xi(nl:kl));
-                    end
-                    %-----------------------------------------
-                    %Згладжування
-                    %-----------------------------------------
-                    lot=lxi/Na;
-                    olot=round(lot/5);
-                    for j=1:(Na-1)
-                        nl=j*lot-olot+1;
-                        kl=j*lot+olot;
-                        p=polyfit(obj.xi(nl:kl),obj.a(nl:kl),5);
-                        obj.a(nl:kl)=polyval(p,obj.xi(nl:kl));
-                    end
-                end
+                L = obj.aproximate(5, L, obj.xi); 
             else
-                Ost=0;%Остача від ділення на 2^i
-                Info=['Довжина сигналу складає ' num2str(obj.ly) ' відліки'];
-                disp('-----------------------------------------------------')
-                disp(Info)
-                disp('-----------------------------------------------------')
-                disp('Остача від ділення на 2^i відсутня')
-                disp('-----------------------------------------------------')
-                Info=['Cтепінь двійки, i=' num2str(i)];
-                disp(Info)
-                disp('-----------------------------------------------------')
-                %-----------------------------------------
-                %Апроксимація
-                %-----------------------------------------
-                if obj.ly<=32
-                    Na=4;%Кількість проміжків апроксимації
-                else
-                    Na=8;
-                end
-                Pp=7;%Максимальний порядок полінома
-                if obj.ly~=obj.lx
-                    disp('Довжина сигналу не рівна довжині вектора часу!')
-                else
-                    na=obj.lx/Na;%Кількість проміжків апроксимації
-                    for j=1:Na
-                        R_2_max=0;
-                        por=0;
-                        nl=(j-1)*na+1;
-                        kl=na*j;
-                        for por_t=1:Pp
-                            p=polyfit(obj.x(nl:kl),obj.change_y(nl:kl),por_t);
-                            obj.a(nl:kl)=polyval(p,obj.x(nl:kl));
-                            Do=sum((obj.change_y(nl:kl)-obj.a(nl:kl)).^2);
-                            yn1=length(obj.change_y(nl:kl));
-                            ysr=sum(obj.change_y(nl:kl))/yn1;
-                            Ds=sum((obj.change_y(nl:kl)-ysr).^2);
-                            if Ds==0
-                                disp('Ділення на нуль! Змініть вхідні дані!')
-                            else
-                                if Do<1e-7
-                                    Do=0;
-                                end
-                                R_2=1-Do/Ds;%Визначення коефіцієнту детермінації
-                                if R_2_max<R_2
-                                    R_2_max=R_2;
-                                    por=por_t;
-                                end
-                            end
-                        end
-                        p=polyfit(obj.x(nl:kl),obj.change_y(nl:kl),por);
-                        obj.a(nl:kl)=polyval(p,obj.x(nl:kl));
-                    end
-                    %-----------------------------------------
-                    %Згладжування
-                    %-----------------------------------------
-                    lot=length(obj.x)/Na;
-                    olot=round(lot/5);
-                    for j=1:(Na-1)
-                        nl=j*lot-olot+1;
-                        kl=j*lot+olot;
-                        p=polyfit(obj.x(nl:kl),obj.a(nl:kl),5);
-                        obj.a(nl:kl)=polyval(p,obj.x(nl:kl));
-                    end         
-            L=obj.change_y;
-            obj.xi=obj.x;
-                end
+                obj.write_message(i);
+                L = obj.aproximate(7,obj.change_y, obj.x);
+                obj.xi = obj.x;
             end
         %-----------------------------------------
-        %Побудова графіків
+        %Find absolute and otnositelnie pohibki
         %-----------------------------------------
         obj.PohAbs=abs(L-obj.a);
         obj.PohOtn=obj.PohAbs./L*100;
