@@ -153,7 +153,7 @@ classdef SignalClass  < handle
             for j=1:Na
                 nl=(j-1)*obj.na+1;
                 kl=obj.na*j;
-                por = obj.find_poradok_polinoma(xi, polinom,L, nl, kl)
+                por = obj.find_poradok_polinoma(xi, polinom,L, nl, kl);
                 p=polyfit(xi(nl:kl),L(nl:kl),por);
                 obj.a(nl:kl)=polyval(p,xi(nl:kl));
             end
