@@ -130,11 +130,11 @@ classdef SignalClass  < handle
        
        function obj = zglagivanie(obj, Na,lxi, xi)
             lot=lxi/Na;
-            olot=round(lot/5); 
+            olot=round(lot/5); % poigratca co znacheniem 
             for j=1:(Na-1)
                 nl=j*lot-olot+1;
                 kl=j*lot+olot;
-                p=polyfit(xi(nl:kl),obj.a(nl:kl),5);
+                p=polyfit(xi(nl:kl),obj.a(nl:kl),5); % vishe pati nety smisla brat 
                 obj.a(nl:kl)=polyval(p,xi(nl:kl));
             end
        end

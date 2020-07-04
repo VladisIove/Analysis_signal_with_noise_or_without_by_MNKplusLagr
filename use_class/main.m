@@ -17,6 +17,9 @@ for name = ["","white", "pink", "grey", "broun", "blue", "violet"]
     answer_signal = [];
     Info(end+1)={name};
     for s = [0.5, 1, 2]
+        if name==""
+            s=2
+        end
         for i = [1,2,3,4,5,6]
             for j = [512,1024,2048,4096,8192]
                 for k = [2,20,200]
