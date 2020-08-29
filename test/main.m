@@ -1,9 +1,9 @@
 clc; clear all; clear classes;
 
-p = 1;
-f = 2;
-N = 256;
-na = 15;
+p = 3;
+f = 20;
+N = 1024;
+na = 8;
 [x_cl,y_cl,xi_cl,a_cl,PohAbs_cl, PohOtn_cl] = getValueClassSignal(p,f, N,  na);
 
 [x_fn,y_fn,xi_fn,a_fn,PohAbs_fn, PohOtn_fn] = getValueMNKPlusLagr(p,f, N,  na);

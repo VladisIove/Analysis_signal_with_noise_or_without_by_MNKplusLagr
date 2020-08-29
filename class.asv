@@ -1,5 +1,0 @@
-classdef SignalClass
-    properties
-        N
-    end
-end
