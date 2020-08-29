@@ -186,7 +186,7 @@ classdef SignalClass  < handle
                obj.change_y = obj.y
            end
            i = floor(log2(obj.ly)); % power of 2
-          if obj.ly-2^i~=0%ymova nauavnosti ostachi
+           if obj.ly-2^i~=0%ymova nauavnosti ostachi
             obj.write_message(i)
             obj.interpoletion(); % Interpoletion
                 
@@ -244,16 +244,16 @@ classdef SignalClass  < handle
             % aproximation
             %-----------------------------------------
             L = obj.aproximate(5, L, obj.xi); 
-          else
-            obj.write_message(i);
-            L = obj.aproximate(7,obj.change_y, obj.x);
-            obj.xi = obj.x;
-          end
-          %-----------------------------------------
-          % find absolute and otnositelnie pohibki
-          %-----------------------------------------
-          obj.PohAbs=abs(L-obj.a);
-          obj.PohOtn=obj.PohAbs./abs(L)*100;
+            else
+                obj.write_message(i);
+                L = obj.aproximate(7,obj.change_y, obj.x);
+                obj.xi = obj.x;
+           end
+           %-----------------------------------------
+           % find absolute and otnositelnie pohibki
+           %-----------------------------------------
+           obj.PohAbs=abs(L-obj.a);
+           obj.PohOtn=obj.PohAbs./abs(L)*100;
        end
        
        
