@@ -20,6 +20,7 @@ classdef SignalClass  < handle
         PohAbs=[];
         xi=[];
         a=[];
+        y_math_model_signal_str = '';
     end
     methods
         function obj = updateValue(obj)
@@ -31,7 +32,7 @@ classdef SignalClass  < handle
             Td=obj.p*T/obj.N;
             obj.fd=1/Td;
             obj.x=Td:Td:obj.p*T;
-            obj.y=3+sin(2*pi*obj.x*obj.f).*exp(-7*obj.x);
+            obj.y=eval(obj.y_math_model_signal_str);
             obj.ly=length(obj.y);
             obj.lx=length(obj.x);
             if obj.snr == 0
